@@ -1,44 +1,67 @@
+
 import os
-import threading
+import shutil
+
 import chess
 import chess.engine
 
 
 class StockfishEngine:
-    """One shared Stockfish process; serialize analysis requests."""
-    def __init__(self, path=None, depth=18):
-        self.path = path or os.getenv("STOCKFISH_EXECUTABLE", "stockfish")
-        self.depth = int(os.getenv("ENGINE_DEPTH", depth))
-        self._engine = None
-        self._lock = threading.Lock()
+
+    def __init__(self):
+        self.engine = None
+        self.ready = False
+
+        self.depth = int(os.getenv("ENGINE_DEPTH", "16"))
+        self.threads = int(os.getenv("ENGINE_THREADS", "1"))
 
     def start(self):
-        if self._engine is None:
-            self._engine = chess.engine.SimpleEngine.popen_uci(self.path)
-            threads = int(os.getenv("ENGINE_THREADS", "2"))
-            self._engine.configure({"Threads": threads})
-        return self
+        executable = os.getenv("STOCKFISH_EXECUTABLE")
+
+        if not executable:
+            executable = shutil.which("stockfish")
+
+        if not executable:
+            raise RuntimeError("Stockfish wurde nicht gefunden.")
+
+        self.engine = chess.engine.SimpleEngine.popen_uci(executable)
+
+        self.engine.configure({
+            "Threads": self.threads
+        })
+
+        self.ready = True
+
+    def analyze(self, board: chess.Board):
+        if not self.ready or self.engine is None:
+            raise RuntimeError("Stockfish ist nicht gestartet.")
+
+        info = self.engine.analyse(
+            board,
+            chess.engine.Limit(depth=self.depth)
+        )
+
+        best_move = self.engine.play(
+            board,
+            chess.engine.Limit(depth=self.depth)
+        ).move
+
+        if best_move is None:
+            raise RuntimeError("Stockfish hat keinen Zug gefunden.")
+
+        score = info["score"].pov(board.turn).score(
+            mate_score=100000
+        )
+
+        return {
+            "best_move": best_move.uci(),
+            "evaluation": score,
+            "depth": info.get("depth", self.depth)
+        }
 
     def close(self):
-        if self._engine is not None:
-            self._engine.quit()
-            self._engine = None
+        if self.engine:
+            self.engine.quit()
+            self.engine = None
 
-    def best_move(self, board):
-        if self._engine is None:
-            self.start()
-        with self._lock:
-            info = self._engine.analyse(board, chess.engine.Limit(depth=self.depth))
-        move = info["pv"][0] if info.get("pv") else None
-        if move is None:
-            raise RuntimeError("Die Engine konnte keinen Zug bestimmen.")
-        score = info.get("score")
-        score_cp = score.pov(board.turn).score(mate_score=100000) if score else None
-        pv = info.get("pv", [])
-        return {
-            "best_move": move.uci(),
-            "best_move_san": board.san(move),
-            "evaluation_cp": score_cp,
-            "depth": info.get("depth", self.depth),
-            "principal_variation": [board.uci(m) for m in pv],
-        }
+        self.ready = False

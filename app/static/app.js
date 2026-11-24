@@ -1,92 +1,52 @@
 
 const game = new Chess();
-
-let board = null;
+let board;
 let bestMove = null;
 
-const boardElement = document.getElementById("board");
-const resultElement = document.getElementById("result");
-const historyElement = document.getElementById("history");
-const turnElement = document.getElementById("turn");
+const result = document.getElementById("result");
+const historyBox = document.getElementById("history");
+const turn = document.getElementById("turn");
 const analyzeButton = document.getElementById("analyze");
-const playBestButton = document.getElementById("play-best");
+const playButton = document.getElementById("play-best");
 
-function clearSuggestion() {
-  document.querySelectorAll(".best-from, .best-to")
-    .forEach(square => {
-      square.classList.remove("best-from", "best-to");
-    });
-
+function clearBestMove() {
+  document.querySelectorAll(".best-from, .best-to").forEach(el => {
+    el.classList.remove("best-from", "best-to");
+  });
   bestMove = null;
-  playBestButton.disabled = true;
+  playButton.disabled = true;
 }
 
-function markBestMove(move) {
-  clearSuggestion();
-
-  if (!move) return;
-
-  bestMove = move;
-
-  const fromSquare = document.querySelector(
-    ".square-" + move.from
-  );
-
-  const toSquare = document.querySelector(
-    ".square-" + move.to
-  );
-
-  if (fromSquare) fromSquare.classList.add("best-from");
-  if (toSquare) toSquare.classList.add("best-to");
-
-  playBestButton.disabled = false;
-}
-
-function updateScreen() {
+function update() {
   board.position(game.fen());
 
-  turnElement.textContent =
-    game.turn() === "w"
-      ? "Weiß ist am Zug"
-      : "Schwarz ist am Zug";
+  turn.textContent = game.turn() === "w"
+    ? "Weiß ist am Zug"
+    : "Schwarz ist am Zug";
 
-  const history = game.history();
+  const moves = game.history();
+  historyBox.textContent = moves.length
+    ? moves.map((m, i) =>
+        (i % 2 === 0 ? (Math.floor(i / 2) + 1) + ". " : "") + m
+      ).join(" ")
+    : "Noch keine Züge.";
 
-  if (history.length === 0) {
-    historyElement.textContent = "Noch keine Züge.";
-  } else {
-    let output = "";
-
-    for (let i = 0; i < history.length; i += 2) {
-      output +=
-        (Math.floor(i / 2) + 1) + ". " +
-        history[i] + " " +
-        (history[i + 1] || "") + "   ";
-    }
-
-    historyElement.textContent = output;
-  }
-
-  clearSuggestion();
+  clearBestMove();
 
   if (game.game_over()) {
-    resultElement.textContent = "Das Spiel ist beendet.";
+    result.textContent = "Spiel beendet.";
   }
 }
 
 function onDragStart(source, piece) {
   if (game.game_over()) return false;
 
-  if (
-    (game.turn() === "w" && piece.startsWith("b")) ||
-    (game.turn() === "b" && piece.startsWith("w"))
-  ) {
-    return false;
-  }
+  if (game.turn() === "w" && piece.startsWith("b")) return false;
+  if (game.turn() === "b" && piece.startsWith("w")) return false;
 }
 
 function onDrop(source, target) {
-  clearSuggestion();
+  clearBestMove();
 
   const move = game.move({
     from: source,
@@ -94,12 +54,10 @@ function onDrop(source, target) {
     promotion: "q"
   });
 
-  if (move === null) {
-    return "snapback";
-  }
+  if (!move) return "snapback";
 
-  resultElement.textContent = "Zug gespielt. Du kannst jetzt analysieren.";
-  updateScreen();
+  result.textContent = "Zug gespielt. Nächster Spieler ist am Zug.";
+  update();
 }
 
 function onSnapEnd() {
@@ -111,108 +69,108 @@ board = Chessboard("board", {
   draggable: true,
   pieceTheme:
     "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
-  onDragStart: onDragStart,
-  onDrop: onDrop,
-  onSnapEnd: onSnapEnd
+  onDragStart,
+  onDrop,
+  onSnapEnd
 });
 
-document.getElementById("flip").addEventListener("click", () => {
-  board.flip();
-});
+document.getElementById("flip").onclick = () => board.flip();
 
-document.getElementById("undo").addEventListener("click", () => {
+document.getElementById("undo").onclick = () => {
   game.undo();
-  resultElement.textContent = "Letzter Zug zurückgenommen.";
-  updateScreen();
-});
+  result.textContent = "Zug zurückgenommen.";
+  update();
+};
 
-document.getElementById("reset").addEventListener("click", () => {
+document.getElementById("reset").onclick = () => {
   game.reset();
-  resultElement.textContent = "Neues Spiel gestartet.";
-  updateScreen();
-});
+  result.textContent = "Neues Spiel gestartet.";
+  update();
+};
 
-analyzeButton.addEventListener("click", async () => {
+analyzeButton.onclick = async () => {
   if (game.game_over()) {
-    resultElement.textContent = "Das Spiel ist bereits beendet.";
+    result.textContent = "Das Spiel ist beendet.";
     return;
   }
 
   analyzeButton.disabled = true;
-  resultElement.textContent = "Stockfish analysiert die Stellung ...";
+  result.textContent = "Stockfish analysiert ...";
 
   try {
-    const moves = game.history({ verbose: true })
-      .map(move => move.from + move.to + (move.promotion || ""));
+    const moves = game.history({ verbose: true }).map(m =>
+      m.from + m.to + (m.promotion || "")
+    );
 
     const response = await fetch("/api/analyze", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        moves: moves
-      })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ moves })
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.detail || "Analyse fehlgeschlagen.");
+      throw new Error(data.detail || "Analyse fehlgeschlagen");
     }
 
-    const move = data.best_move;
+    // Stockfish liefert einen UCI-Zug, z. B. e2e4 oder e7e8q.
+    const uci = data.best_move;
+
+    if (!uci || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci)) {
+      throw new Error("Ungültiger Zug von Stockfish: " + uci);
+    }
+
+    const move = game.move({
+      from: uci.slice(0, 2),
+      to: uci.slice(2, 4),
+      promotion: uci[4] || "q"
+    });
 
     if (!move) {
-      throw new Error("Die Engine hat keinen Zug zurückgegeben.");
-    }
-
-    const parsedMove = game.move(move, { sloppy: true });
-
-    if (!parsedMove) {
-      throw new Error("Der beste Zug konnte nicht erkannt werden.");
+      throw new Error("Stockfish-Zug ist in dieser Stellung nicht legal.");
     }
 
     game.undo();
 
-    markBestMove({
-      from: parsedMove.from,
-      to: parsedMove.to,
-      san: parsedMove.san
-    });
+    bestMove = {
+      from: move.from,
+      to: move.to,
+      promotion: uci[4] || "q"
+    };
 
-    resultElement.innerHTML =
-      "<strong>BESTER ZUG: " + parsedMove.san + "</strong><br>" +
-      "Von: " + parsedMove.from + "<br>" +
-      "Nach: " + parsedMove.to + "<br>" +
-      "Engine: Stockfish";
+    const from = document.querySelector(".square-" + move.from);
+    const to = document.querySelector(".square-" + move.to);
+
+    if (from) from.classList.add("best-from");
+    if (to) to.classList.add("best-to");
+
+    playButton.disabled = false;
+
+    result.innerHTML =
+      "<strong>BESTER ZUG: " + move.san + "</strong><br>" +
+      "Von: " + move.from + "<br>" +
+      "Nach: " + move.to +
+      "<br>Bewertung: " + (data.evaluation ?? "Nicht verfügbar");
 
   } catch (error) {
-    resultElement.textContent = "Fehler: " + error.message;
+    result.textContent = "Fehler: " + error.message;
   } finally {
     analyzeButton.disabled = false;
   }
-});
+};
 
-playBestButton.addEventListener("click", () => {
+playButton.onclick = () => {
   if (!bestMove) return;
 
-  const move = game.move({
-    from: bestMove.from,
-    to: bestMove.to,
-    promotion: "q"
-  });
+  const move = game.move(bestMove);
 
   if (move) {
-    resultElement.textContent =
-      "Bester Zug gespielt: " + move.san;
-
-    updateScreen();
+    result.textContent = "Bester Zug ausgeführt: " + move.san;
+    update();
   }
-});
+};
 
-window.addEventListener("resize", () => {
-  if (board) board.resize();
-});
+window.addEventListener("resize", () => board.resize());
 
-updateScreen();
+update();

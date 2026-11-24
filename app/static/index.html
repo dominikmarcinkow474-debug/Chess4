@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chess — Best Move</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="eyebrow">CART3R.JAILBREAK · CHESS LAB</div>
+      <h1>Chess <span>Best Move</span></h1>
+      <p>Spiele Züge auf dem Brett oder gib eine komplette Zugfolge ein. Die Engine berechnet den stärksten Zug für die aktuelle Stellung.</p>
+    </header>
+
+    <section class="layout">
+      <div class="board-panel">
+        <div class="board-top"><span id="turn-label">Weiß am Zug</span><button id="flip" class="subtle">Brett drehen</button></div>
+        <div id="board"></div>
+        <div class="board-actions">
+          <button id="undo" class="subtle">Letzten Zug zurück</button>
+          <button id="reset" class="subtle">Neue Partie</button>
+        </div>
+      </div>
+
+      <aside class="side-panel">
+        <label for="pgn">Züge eingeben (PGN / SAN)</label>
+        <textarea id="pgn" rows="5" placeholder="Beispiel: 1. e4 e5 2. Nf3 Nc6"></textarea>
+        <button id="load-pgn" class="secondary">Zugfolge laden</button>
+
+        <div class="divider"></div>
+        <div class="section-title">ZUGANALYSE</div>
+        <button id="analyze" class="primary">✦ Besten Zug anzeigen</button>
+        <div id="result" class="result" aria-live="polite">
+          <span class="muted">Noch keine Analyse durchgeführt.</span>
+        </div>
+
+        <div class="divider"></div>
+        <div class="section-title">PARTIEVERLAUF</div>
+        <ol id="history" class="history"><li class="muted">Noch keine Züge</li></ol>
+        <p class="hint">Hinweis: Die Bewertung ist aus Sicht der Seite am Zug. Stockfish analysiert lokal auf dem Server.</p>
+      </aside>
+    </section>
+    <footer>Stockfish · python-chess · FastAPI</footer>
+  </main>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

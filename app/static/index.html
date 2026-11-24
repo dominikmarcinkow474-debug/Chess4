@@ -2,82 +2,56 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CHESS BEST MOVE</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CART3R.JAILBREAK – Chess Best Move</title>
 
-    <link rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
+  <link rel="stylesheet"
+    href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
 
-    <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
-<main class="container">
+  <header>
+    <h1>CART3R.JAILBREAK</h1>
+    <p>CHESS BEST MOVE</p>
+  </header>
 
-    <header>
-        <h1>♟ CHESS <span>BEST MOVE</span></h1>
-        <p>Play chess. Analyze positions. Find the best move.</p>
-    </header>
-
+  <main>
     <section class="game">
+      <h2>Schachbrett</h2>
 
-        <div class="board-container">
-            <div class="board-header">
-                <span id="turn-label">Weiß am Zug</span>
-                <button id="flip">Brett drehen</button>
-            </div>
+      <div id="board"></div>
 
-            <div id="board"></div>
+      <p id="turn">Weiß ist am Zug</p>
 
-            <div class="controls">
-                <button id="undo">Zug zurück</button>
-                <button id="reset">Neue Partie</button>
-            </div>
-        </div>
-
-        <aside class="panel">
-
-            <h2>STOCKFISH ANALYSE</h2>
-
-            <button id="analyze" class="primary">
-                ✦ BESTEN ZUG ANZEIGEN
-            </button>
-
-            <button id="play-best" disabled>
-                BESTEN ZUG ÜBERNEHMEN
-            </button>
-
-            <div id="result" class="result">
-                Warte auf Analyse...
-            </div>
-
-            <h2>PARTIEVERLAUF</h2>
-
-            <ol id="history"></ol>
-
-            <h2>PGN ZUG-EINGABE</h2>
-
-            <textarea id="pgn"
-                placeholder="1. e4 e5 2. Nf3 Nc6">
-            </textarea>
-
-            <button id="load-pgn">
-                ZÜGE LADEN
-            </button>
-
-        </aside>
+      <div class="controls">
+        <button id="flip">Brett drehen</button>
+        <button id="undo">Zug zurück</button>
+        <button id="reset">Neues Spiel</button>
+      </div>
     </section>
 
-</main>
+    <section class="analysis">
+      <h2>KI-Analyse</h2>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+      <button id="analyze">BESTEN ZUG FINDEN</button>
+      <button id="play-best" disabled>BESTEN ZUG SPIELEN</button>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+      <div id="result">
+        Noch keine Analyse durchgeführt.
+      </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+      <h3>Zugverlauf</h3>
+      <div id="history">Noch keine Züge.</div>
+    </section>
+  </main>
 
-<script src="/static/app.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://unpkg.com/chess.js@0.10.3/chess.min.js"></script>
+  <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+  <script src="/static/app.js"></script>
 
 </body>
 </html>

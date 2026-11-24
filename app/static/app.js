@@ -1,111 +1,329 @@
 
-const game = new Chess();
-let board;
-let bestMove = null;
+"use strict";
 
-const result = document.getElementById("result");
-const historyBox = document.getElementById("history");
-const turn = document.getElementById("turn");
+if (typeof Chess === "undefined") {
+  document.getElementById("result").textContent =
+    "Fehler: Die Schachbibliothek konnte nicht geladen werden.";
+  throw new Error("Chess.js nicht geladen");
+}
+
+const game = new Chess();
+
+const boardElement = document.getElementById("board");
+const turnElement = document.getElementById("turn");
+const resultElement = document.getElementById("result");
+const historyElement = document.getElementById("history");
+
 const analyzeButton = document.getElementById("analyze");
 const playButton = document.getElementById("play-best");
 
+const pieces = {
+  wk: "♔",
+  wq: "♕",
+  wr: "♖",
+  wb: "♗",
+  wn: "♘",
+  wp: "♙",
+  bk: "♚",
+  bq: "♛",
+  br: "♜",
+  bb: "♝",
+  bn: "♞",
+  bp: "♟"
+};
+
+let flipped = false;
+let selectedSquare = null;
+let legalTargets = [];
+let bestMove = null;
+let lastMove = null;
+let dragFrom = null;
+let suppressClick = false;
+
+function squareName(row, col) {
+  const files = "abcdefgh";
+  const rank = flipped ? row + 1 : 8 - row;
+  const file = flipped ? files[7 - col] : files[col];
+  return file + rank;
+}
+
+function renderBoard() {
+  boardElement.innerHTML = "";
+
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const square = squareName(row, col);
+      const piece = game.get(square);
+
+      const element = document.createElement("div");
+
+      element.className =
+        "square " +
+        ((row + col) % 2 === 0 ? "light" : "dark");
+
+      element.dataset.square = square;
+
+      if (piece) {
+        const key = piece.color + piece.type;
+        element.textContent = pieces[key];
+        element.classList.add(
+          piece.color === "w" ? "white-piece" : "black-piece"
+        );
+      }
+
+      if (selectedSquare === square) {
+        element.classList.add("selected");
+      }
+
+      if (legalTargets.includes(square)) {
+        element.classList.add("legal");
+      }
+
+      if (bestMove) {
+        if (bestMove.from === square) {
+          element.classList.add("best-from");
+        }
+        if (bestMove.to === square) {
+          element.classList.add("best-to");
+        }
+      }
+
+      if (lastMove &&
+          (lastMove.from === square || lastMove.to === square)) {
+        element.classList.add("last-move");
+      }
+
+      boardElement.appendChild(element);
+    }
+  }
+
+  turnElement.textContent =
+    game.turn() === "w" ? "WEISS AM ZUG" : "SCHWARZ AM ZUG";
+
+  updateHistory();
+}
+
+function updateHistory() {
+  const history = game.history();
+
+  if (!history.length) {
+    historyElement.textContent = "Noch keine Züge.";
+    return;
+  }
+
+  let text = "";
+
+  for (let i = 0; i < history.length; i += 2) {
+    text += (Math.floor(i / 2) + 1) + ". " + history[i];
+
+    if (history[i + 1]) {
+      text += " " + history[i + 1];
+    }
+
+    text += "   ";
+  }
+
+  historyElement.textContent = text;
+}
+
 function clearBestMove() {
-  document.querySelectorAll(".best-from, .best-to").forEach(el => {
-    el.classList.remove("best-from", "best-to");
-  });
   bestMove = null;
   playButton.disabled = true;
 }
 
-function update() {
-  board.position(game.fen());
+function clearSelection() {
+  selectedSquare = null;
+  legalTargets = [];
+}
 
-  turn.textContent = game.turn() === "w"
-    ? "Weiß ist am Zug"
-    : "Schwarz ist am Zug";
+function selectSquare(square) {
+  const piece = game.get(square);
 
-  const moves = game.history();
-  historyBox.textContent = moves.length
-    ? moves.map((m, i) =>
-        (i % 2 === 0 ? (Math.floor(i / 2) + 1) + ". " : "") + m
-      ).join(" ")
-    : "Noch keine Züge.";
-
-  clearBestMove();
-
-  if (game.game_over()) {
-    result.textContent = "Spiel beendet.";
+  if (!piece || piece.color !== game.turn()) {
+    return false;
   }
+
+  selectedSquare = square;
+
+  legalTargets = game.moves({
+    square: square,
+    verbose: true
+  }).map(move => move.to);
+
+  renderBoard();
+  return true;
 }
 
-function onDragStart(source, piece) {
-  if (game.game_over()) return false;
-
-  if (game.turn() === "w" && piece.startsWith("b")) return false;
-  if (game.turn() === "b" && piece.startsWith("w")) return false;
-}
-
-function onDrop(source, target) {
-  clearBestMove();
-
+function makeMove(from, to) {
   const move = game.move({
-    from: source,
-    to: target,
+    from: from,
+    to: to,
     promotion: "q"
   });
 
-  if (!move) return "snapback";
+  if (!move) {
+    return false;
+  }
 
-  result.textContent = "Zug gespielt. Nächster Spieler ist am Zug.";
-  update();
+  lastMove = {
+    from: move.from,
+    to: move.to
+  };
+
+  clearSelection();
+  clearBestMove();
+
+  resultElement.innerHTML =
+    "<strong>ZUG GESPIELT</strong><br>" +
+    move.san;
+
+  renderBoard();
+
+  if (game.game_over()) {
+    resultElement.innerHTML += "<br><strong>SPIEL BEENDET</strong>";
+  }
+
+  return true;
 }
 
-function onSnapEnd() {
-  board.position(game.fen());
+function handleSquare(square) {
+  if (game.game_over()) return;
+
+  if (!selectedSquare) {
+    selectSquare(square);
+    return;
+  }
+
+  if (selectedSquare === square) {
+    clearSelection();
+    renderBoard();
+    return;
+  }
+
+  if (makeMove(selectedSquare, square)) {
+    return;
+  }
+
+  if (!selectSquare(square)) {
+    clearSelection();
+    renderBoard();
+  }
 }
 
-board = Chessboard("board", {
-  position: "start",
-  draggable: true,
-  pieceTheme:
-    "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
-  onDragStart,
-  onDrop,
-  onSnapEnd
+// iPad: Antippen und Ziehen.
+boardElement.addEventListener("pointerdown", event => {
+  const squareElement = event.target.closest(".square");
+  if (!squareElement) return;
+
+  const square = squareElement.dataset.square;
+  const piece = game.get(square);
+
+  if (piece && piece.color === game.turn()) {
+    dragFrom = square;
+    try {
+      squareElement.setPointerCapture(event.pointerId);
+    } catch (_) {}
+  }
 });
 
-document.getElementById("flip").onclick = () => board.flip();
+boardElement.addEventListener("pointerup", event => {
+  if (!dragFrom) return;
 
-document.getElementById("undo").onclick = () => {
-  game.undo();
-  result.textContent = "Zug zurückgenommen.";
-  update();
-};
+  const targetElement = document.elementFromPoint(
+    event.clientX,
+    event.clientY
+  );
 
-document.getElementById("reset").onclick = () => {
+  const squareElement = targetElement
+    ? targetElement.closest(".square")
+    : null;
+
+  const target = squareElement
+    ? squareElement.dataset.square
+    : null;
+
+  const from = dragFrom;
+  dragFrom = null;
+
+  if (target && target !== from) {
+    if (makeMove(from, target)) {
+      suppressClick = true;
+      setTimeout(() => {
+        suppressClick = false;
+      }, 100);
+    }
+  }
+});
+
+boardElement.addEventListener("pointercancel", () => {
+  dragFrom = null;
+});
+
+// Funktioniert auch mit einfachem Antippen.
+boardElement.addEventListener("click", event => {
+  if (suppressClick) return;
+
+  const squareElement = event.target.closest(".square");
+  if (!squareElement) return;
+
+  handleSquare(squareElement.dataset.square);
+});
+
+// Brett drehen.
+document.getElementById("flip").addEventListener("click", () => {
+  flipped = !flipped;
+  renderBoard();
+});
+
+// Zug zurücknehmen.
+document.getElementById("undo").addEventListener("click", () => {
+  const undone = game.undo();
+
+  if (!undone) return;
+
+  lastMove = null;
+  clearSelection();
+  clearBestMove();
+
+  resultElement.textContent = "Zug zurückgenommen.";
+  renderBoard();
+});
+
+// Neues Spiel.
+document.getElementById("reset").addEventListener("click", () => {
   game.reset();
-  result.textContent = "Neues Spiel gestartet.";
-  update();
-};
 
-analyzeButton.onclick = async () => {
+  lastMove = null;
+  clearSelection();
+  clearBestMove();
+
+  resultElement.textContent = "Neues Spiel gestartet.";
+  renderBoard();
+});
+
+// Stockfish-Analyse.
+analyzeButton.addEventListener("click", async () => {
   if (game.game_over()) {
-    result.textContent = "Das Spiel ist beendet.";
+    resultElement.textContent = "Das Spiel ist beendet.";
     return;
   }
 
   analyzeButton.disabled = true;
-  result.textContent = "Stockfish analysiert ...";
+  playButton.disabled = true;
+
+  resultElement.textContent = "Stockfish analysiert die Stellung ...";
 
   try {
-    const moves = game.history({ verbose: true }).map(m =>
-      m.from + m.to + (m.promotion || "")
+    const moves = game.history({ verbose: true }).map(move =>
+      move.from + move.to + (move.promotion || "")
     );
 
     const response = await fetch("/api/analyze", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ moves })
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ moves: moves })
     });
 
     const data = await response.json();
@@ -114,63 +332,80 @@ analyzeButton.onclick = async () => {
       throw new Error(data.detail || "Analyse fehlgeschlagen");
     }
 
-    // Stockfish liefert einen UCI-Zug, z. B. e2e4 oder e7e8q.
     const uci = data.best_move;
 
     if (!uci || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci)) {
-      throw new Error("Ungültiger Zug von Stockfish: " + uci);
+      throw new Error("Stockfish hat keinen gültigen Zug geliefert.");
     }
 
-    const move = game.move({
+    const candidate = game.move({
       from: uci.slice(0, 2),
       to: uci.slice(2, 4),
       promotion: uci[4] || "q"
     });
 
-    if (!move) {
-      throw new Error("Stockfish-Zug ist in dieser Stellung nicht legal.");
+    if (!candidate) {
+      throw new Error("Der berechnete Zug ist nicht legal.");
     }
 
     game.undo();
 
     bestMove = {
-      from: move.from,
-      to: move.to,
-      promotion: uci[4] || "q"
+      from: candidate.from,
+      to: candidate.to,
+      promotion: uci[4] || "q",
+      san: candidate.san
     };
 
-    const from = document.querySelector(".square-" + move.from);
-    const to = document.querySelector(".square-" + move.to);
+    renderBoard();
 
-    if (from) from.classList.add("best-from");
-    if (to) to.classList.add("best-to");
+    const evaluation =
+      typeof data.evaluation === "number"
+        ? (data.evaluation / 100).toFixed(2)
+        : "Nicht verfügbar";
+
+    resultElement.innerHTML =
+      "<strong>BESTER ZUG: " + candidate.san + "</strong><br>" +
+      "Von: " + candidate.from + "<br>" +
+      "Nach: " + candidate.to + "<br>" +
+      "Bewertung: " + evaluation;
 
     playButton.disabled = false;
 
-    result.innerHTML =
-      "<strong>BESTER ZUG: " + move.san + "</strong><br>" +
-      "Von: " + move.from + "<br>" +
-      "Nach: " + move.to +
-      "<br>Bewertung: " + (data.evaluation ?? "Nicht verfügbar");
-
   } catch (error) {
-    result.textContent = "Fehler: " + error.message;
+    resultElement.textContent = "Fehler: " + error.message;
   } finally {
     analyzeButton.disabled = false;
   }
-};
+});
 
-playButton.onclick = () => {
+// Besten Zug ausführen.
+playButton.addEventListener("click", () => {
   if (!bestMove) return;
 
-  const move = game.move(bestMove);
+  const move = game.move({
+    from: bestMove.from,
+    to: bestMove.to,
+    promotion: bestMove.promotion || "q"
+  });
 
-  if (move) {
-    result.textContent = "Bester Zug ausgeführt: " + move.san;
-    update();
+  if (!move) {
+    resultElement.textContent = "Der Zug kann nicht ausgeführt werden.";
+    return;
   }
-};
 
-window.addEventListener("resize", () => board.resize());
+  lastMove = {
+    from: move.from,
+    to: move.to
+  };
 
-update();
+  clearSelection();
+  clearBestMove();
+
+  resultElement.innerHTML =
+    "<strong>BESTER ZUG AUSGEFÜHRT</strong><br>" + move.san;
+
+  renderBoard();
+});
+
+renderBoard();

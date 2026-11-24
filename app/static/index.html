@@ -3,55 +3,67 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CART3R.JAILBREAK – Chess Best Move</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#101014">
 
-  <link rel="stylesheet"
-    href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+  <title>CART3R.JAILBREAK | CHESS BEST MOVE</title>
 
   <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+</head>
+
+<body>
   <header>
     <h1>CART3R.JAILBREAK</h1>
     <p>CHESS BEST MOVE</p>
   </header>
 
   <main>
-    <section class="game">
-      <h2>Schachbrett</h2>
+    <section class="game-panel">
 
-      <div id="board"></div>
-
-      <p id="turn">Weiß ist am Zug</p>
-
-      <div class="controls">
-        <button id="flip">Brett drehen</button>
-        <button id="undo">Zug zurück</button>
-        <button id="reset">Neues Spiel</button>
+      <div class="panel-heading">
+        <h2>SPIELBRETT</h2>
+        <span class="live-status">ONLINE</span>
       </div>
+
+      <div id="turn">WEISS AM ZUG</div>
+
+      <div id="board" aria-label="Interaktives Schachbrett"></div>
+
+      <div class="board-controls">
+        <button id="flip">BRETT DREHEN</button>
+        <button id="undo">ZUG ZURÜCK</button>
+        <button id="reset">NEUES SPIEL</button>
+      </div>
+
     </section>
 
-    <section class="analysis">
-      <h2>KI-Analyse</h2>
+    <section class="analysis-panel">
+      <h2>STOCKFISH ANALYSE</h2>
 
-      <button id="analyze">BESTEN ZUG FINDEN</button>
-      <button id="play-best" disabled>BESTEN ZUG SPIELEN</button>
+      <button id="analyze" class="main-button">
+        BESTEN ZUG FINDEN
+      </button>
+
+      <button id="play-best" class="play-button" disabled>
+        BESTEN ZUG SPIELEN
+      </button>
 
       <div id="result">
-        Noch keine Analyse durchgeführt.
+        <strong>BEREIT</strong>
+        <p>Spiele einen Zug und starte anschließend die Analyse.</p>
       </div>
 
-      <h3>Zugverlauf</h3>
+      <h3>ZUGVERLAUF</h3>
       <div id="history">Noch keine Züge.</div>
     </section>
   </main>
 
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://unpkg.com/chess.js@0.10.3/chess.min.js"></script>
-  <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
-  <script src="/static/app.js"></script>
+  <footer>
+    CART3R.JAILBREAK CHESS ENGINE
+  </footer>
 
+  <script src="/static/app.js"></script>
 </body>
 </html>

@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: chess-best-move
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: STOCKFISH_EXECUTABLE
+        value: /usr/games/stockfish
+      - key: ENGINE_DEPTH
+        value: "16"
+      - key: ENGINE_THREADS
+        value: "1"

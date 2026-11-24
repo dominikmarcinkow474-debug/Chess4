@@ -1,0 +1,10 @@
+services:
+  chess-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      STOCKFISH_EXECUTABLE: /usr/games/stockfish
+      ENGINE_DEPTH: "18"
+      ENGINE_THREADS: "2"
+    restart: unless-stopped

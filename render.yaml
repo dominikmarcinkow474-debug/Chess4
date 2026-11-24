@@ -1,13 +1,16 @@
+
 services:
   - type: web
-    name: chess-best-move
+    name: cart3r-jailbreak-chess
     runtime: docker
     plan: free
     healthCheckPath: /api/health
     envVars:
       - key: STOCKFISH_EXECUTABLE
         value: /usr/games/stockfish
+
       - key: ENGINE_DEPTH
         value: "16"
+
       - key: ENGINE_THREADS
         value: "1"

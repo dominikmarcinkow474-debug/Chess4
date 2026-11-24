@@ -2,8 +2,7 @@
 "use strict";
 
 if (typeof Chess === "undefined") {
-  document.getElementById("result").textContent =
-    "Fehler: Die Schachbibliothek konnte nicht geladen werden.";
+  alert("Die Schachbibliothek konnte nicht geladen werden.");
   throw new Error("Chess.js nicht geladen");
 }
 
@@ -17,19 +16,14 @@ const historyElement = document.getElementById("history");
 const analyzeButton = document.getElementById("analyze");
 const playButton = document.getElementById("play-best");
 
+const adOverlay = document.getElementById("ad-overlay");
+const closeAdButton = document.getElementById("close-ad");
+
 const pieces = {
-  wk: "♔",
-  wq: "♕",
-  wr: "♖",
-  wb: "♗",
-  wn: "♘",
-  wp: "♙",
-  bk: "♚",
-  bq: "♛",
-  br: "♜",
-  bb: "♝",
-  bn: "♞",
-  bp: "♟"
+  wk: "♔", wq: "♕", wr: "♖",
+  wb: "♗", wn: "♘", wp: "♙",
+  bk: "♚", bq: "♛", br: "♜",
+  bb: "♝", bn: "♞", bp: "♟"
 };
 
 let flipped = false;
@@ -64,8 +58,7 @@ function renderBoard() {
       element.dataset.square = square;
 
       if (piece) {
-        const key = piece.color + piece.type;
-        element.textContent = pieces[key];
+        element.textContent = pieces[piece.color + piece.type];
         element.classList.add(
           piece.color === "w" ? "white-piece" : "black-piece"
         );
@@ -111,19 +104,19 @@ function updateHistory() {
     return;
   }
 
-  let text = "";
+  let output = "";
 
   for (let i = 0; i < history.length; i += 2) {
-    text += (Math.floor(i / 2) + 1) + ". " + history[i];
+    output += (Math.floor(i / 2) + 1) + ". " + history[i];
 
     if (history[i + 1]) {
-      text += " " + history[i + 1];
+      output += " " + history[i + 1];
     }
 
-    text += "   ";
+    output += "   ";
   }
 
-  historyElement.textContent = text;
+  historyElement.textContent = output;
 }
 
 function clearBestMove() {
@@ -161,9 +154,7 @@ function makeMove(from, to) {
     promotion: "q"
   });
 
-  if (!move) {
-    return false;
-  }
+  if (!move) return false;
 
   lastMove = {
     from: move.from,
@@ -173,44 +164,19 @@ function makeMove(from, to) {
   clearSelection();
   clearBestMove();
 
-  resultElement.innerHTML =
-    "<strong>ZUG GESPIELT</strong><br>" +
-    move.san;
+  resultElement.hidden = false;
+  resultElement.textContent = "Zug gespielt: " + move.san;
 
   renderBoard();
 
   if (game.game_over()) {
-    resultElement.innerHTML += "<br><strong>SPIEL BEENDET</strong>";
+    resultElement.textContent += " – Spiel beendet.";
   }
 
   return true;
 }
 
-function handleSquare(square) {
-  if (game.game_over()) return;
-
-  if (!selectedSquare) {
-    selectSquare(square);
-    return;
-  }
-
-  if (selectedSquare === square) {
-    clearSelection();
-    renderBoard();
-    return;
-  }
-
-  if (makeMove(selectedSquare, square)) {
-    return;
-  }
-
-  if (!selectSquare(square)) {
-    clearSelection();
-    renderBoard();
-  }
-}
-
-// iPad: Antippen und Ziehen.
+// Figuren auf dem Brett bewegen
 boardElement.addEventListener("pointerdown", event => {
   const squareElement = event.target.closest(".square");
   if (!squareElement) return;
@@ -220,9 +186,6 @@ boardElement.addEventListener("pointerdown", event => {
 
   if (piece && piece.color === game.turn()) {
     dragFrom = square;
-    try {
-      squareElement.setPointerCapture(event.pointerId);
-    } catch (_) {}
   }
 });
 
@@ -245,13 +208,11 @@ boardElement.addEventListener("pointerup", event => {
   const from = dragFrom;
   dragFrom = null;
 
-  if (target && target !== from) {
-    if (makeMove(from, target)) {
-      suppressClick = true;
-      setTimeout(() => {
-        suppressClick = false;
-      }, 100);
-    }
+  if (target && target !== from && makeMove(from, target)) {
+    suppressClick = true;
+    setTimeout(() => {
+      suppressClick = false;
+    }, 100);
   }
 });
 
@@ -259,37 +220,53 @@ boardElement.addEventListener("pointercancel", () => {
   dragFrom = null;
 });
 
-// Funktioniert auch mit einfachem Antippen.
+// Figuren durch Antippen bewegen
 boardElement.addEventListener("click", event => {
   if (suppressClick) return;
 
   const squareElement = event.target.closest(".square");
   if (!squareElement) return;
 
-  handleSquare(squareElement.dataset.square);
+  const square = squareElement.dataset.square;
+
+  if (!selectedSquare) {
+    selectSquare(square);
+    return;
+  }
+
+  if (selectedSquare === square) {
+    clearSelection();
+    renderBoard();
+    return;
+  }
+
+  if (!makeMove(selectedSquare, square)) {
+    if (!selectSquare(square)) {
+      clearSelection();
+      renderBoard();
+    }
+  }
 });
 
-// Brett drehen.
+// Brett drehen
 document.getElementById("flip").addEventListener("click", () => {
   flipped = !flipped;
   renderBoard();
 });
 
-// Zug zurücknehmen.
+// Zug zurücknehmen
 document.getElementById("undo").addEventListener("click", () => {
-  const undone = game.undo();
-
-  if (!undone) return;
+  if (!game.undo()) return;
 
   lastMove = null;
   clearSelection();
   clearBestMove();
 
-  resultElement.textContent = "Zug zurückgenommen.";
+  resultElement.hidden = true;
   renderBoard();
 });
 
-// Neues Spiel.
+// Neues Spiel + Werbeeinblendung
 document.getElementById("reset").addEventListener("click", () => {
   game.reset();
 
@@ -297,13 +274,23 @@ document.getElementById("reset").addEventListener("click", () => {
   clearSelection();
   clearBestMove();
 
-  resultElement.textContent = "Neues Spiel gestartet.";
+  resultElement.hidden = true;
+
   renderBoard();
+
+  // Werbeeinblendung öffnen
+  adOverlay.hidden = false;
 });
 
-// Stockfish-Analyse.
+// Werbung schließen
+closeAdButton.addEventListener("click", () => {
+  adOverlay.hidden = true;
+});
+
+// Stockfish analysiert den besten Zug
 analyzeButton.addEventListener("click", async () => {
   if (game.game_over()) {
+    resultElement.hidden = false;
     resultElement.textContent = "Das Spiel ist beendet.";
     return;
   }
@@ -311,7 +298,8 @@ analyzeButton.addEventListener("click", async () => {
   analyzeButton.disabled = true;
   playButton.disabled = true;
 
-  resultElement.textContent = "Stockfish analysiert die Stellung ...";
+  resultElement.hidden = false;
+  resultElement.textContent = "Stockfish analysiert ...";
 
   try {
     const moves = game.history({ verbose: true }).map(move =>
@@ -335,7 +323,7 @@ analyzeButton.addEventListener("click", async () => {
     const uci = data.best_move;
 
     if (!uci || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci)) {
-      throw new Error("Stockfish hat keinen gültigen Zug geliefert.");
+      throw new Error("Ungültiger Zug von Stockfish.");
     }
 
     const candidate = game.move({
@@ -345,7 +333,7 @@ analyzeButton.addEventListener("click", async () => {
     });
 
     if (!candidate) {
-      throw new Error("Der berechnete Zug ist nicht legal.");
+      throw new Error("Der Zug ist nicht legal.");
     }
 
     game.undo();
@@ -359,16 +347,15 @@ analyzeButton.addEventListener("click", async () => {
 
     renderBoard();
 
-    const evaluation =
-      typeof data.evaluation === "number"
-        ? (data.evaluation / 100).toFixed(2)
-        : "Nicht verfügbar";
-
     resultElement.innerHTML =
       "<strong>BESTER ZUG: " + candidate.san + "</strong><br>" +
       "Von: " + candidate.from + "<br>" +
-      "Nach: " + candidate.to + "<br>" +
-      "Bewertung: " + evaluation;
+      "Nach: " + candidate.to;
+
+    if (typeof data.evaluation === "number") {
+      resultElement.innerHTML +=
+        "<br>Bewertung: " + (data.evaluation / 100).toFixed(2);
+    }
 
     playButton.disabled = false;
 
@@ -379,7 +366,7 @@ analyzeButton.addEventListener("click", async () => {
   }
 });
 
-// Besten Zug ausführen.
+// Besten Zug automatisch spielen
 playButton.addEventListener("click", () => {
   if (!bestMove) return;
 
@@ -389,10 +376,7 @@ playButton.addEventListener("click", () => {
     promotion: bestMove.promotion || "q"
   });
 
-  if (!move) {
-    resultElement.textContent = "Der Zug kann nicht ausgeführt werden.";
-    return;
-  }
+  if (!move) return;
 
   lastMove = {
     from: move.from,
@@ -402,8 +386,8 @@ playButton.addEventListener("click", () => {
   clearSelection();
   clearBestMove();
 
-  resultElement.innerHTML =
-    "<strong>BESTER ZUG AUSGEFÜHRT</strong><br>" + move.san;
+  resultElement.hidden = false;
+  resultElement.textContent = "Bester Zug ausgeführt: " + move.san;
 
   renderBoard();
 });

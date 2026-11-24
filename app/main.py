@@ -1,78 +1,103 @@
+
+import os
+import re
 from contextlib import asynccontextmanager
-from pathlib import Path
+
 import chess
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from .engine import StockfishEngine
-
-BASE_DIR = Path(__file__).resolve().parent
+from app.engine import StockfishEngine
 
 
 class AnalyzeRequest(BaseModel):
-    moves: list[str] = Field(default_factory=list, description="Chronological UCI moves, e.g. e2e4")
-    fen: str | None = None
+    moves: list[str] = Field(default_factory=list, max_length=500)
 
 
-def create_app(engine=None):
-    @asynccontextmanager
-    async def lifespan(app: FastAPI):
-        if engine is None:
-            app.state.engine = StockfishEngine().start()
-        else:
-            app.state.engine = engine
-        yield
-        if engine is None:
-            app.state.engine.close()
+engine = None
 
-    api = FastAPI(
-        title="Chess Best Move API",
-        version="1.0.0",
-        description="Validates a chess position and returns Stockfish's strongest move.",
-        lifespan=lifespan,
-    )
 
-    @api.get("/api/health")
-    def health():
-        return {"status": "ok", "engine": "Stockfish"}
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global engine
 
-    @api.post("/api/analyze")
-    def analyze(payload: AnalyzeRequest):
-        try:
-            board = chess.Board(payload.fen) if payload.fen else chess.Board()
-            if not board.is_valid():
-                raise ValueError("Die FEN beschreibt keine gültige Schachstellung.")
-            for index, raw_move in enumerate(payload.moves):
-                move = chess.Move.from_uci(raw_move)
-                if move not in board.legal_moves:
-                    raise ValueError(f"Ungültiger Zug an Position {index + 1}: {raw_move}")
-                board.push(move)
-        except (ValueError, chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError) as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
+    engine = StockfishEngine()
+    engine.start()
 
-        if board.is_game_over():
-            raise HTTPException(status_code=409, detail="Die Partie ist bereits beendet.")
+    yield
 
-        try:
-            result = api.state.engine.best_move(board)
-        except Exception as exc:
-            raise HTTPException(status_code=503, detail=f"Schach-Engine nicht verfügbar: {exc}") from exc
+    if engine:
+        engine.close()
+
+
+app = FastAPI(
+    title="CART3R.JAILBREAK CHESS",
+    lifespan=lifespan
+)
+
+app.mount(
+    "/static",
+    StaticFiles(directory="app/static"),
+    name="static"
+)
+
+
+@app.get("/")
+def home():
+    return FileResponse("app/static/index.html")
+
+
+@app.get("/api/health")
+def health():
+    return {
+        "status": "online",
+        "engine": engine is not None and engine.ready
+    }
+
+
+@app.post("/api/analyze")
+def analyze(request: AnalyzeRequest):
+    if engine is None or not engine.ready:
+        raise HTTPException(
+            status_code=503,
+            detail="Stockfish ist momentan nicht verfügbar."
+        )
+
+    board = chess.Board()
+
+    try:
+        for move in request.moves:
+            if not re.fullmatch(r"[a-h][1-8][a-h][1-8][qrbn]?", move):
+                raise ValueError("Ungültiges Zugformat.")
+
+            board.push_uci(move)
+
+    except (ValueError, chess.InvalidMoveError,
+            chess.IllegalMoveError, chess.AmbiguousMoveError):
+        raise HTTPException(
+            status_code=400,
+            detail="Die übermittelten Züge sind ungültig."
+        )
+
+    if board.is_game_over():
+        raise HTTPException(
+            status_code=400,
+            detail="Die Partie ist bereits beendet."
+        )
+
+    try:
+        result = engine.analyze(board)
 
         return {
-            **result,
-            "fen": board.fen(),
-            "turn": "white" if board.turn else "black",
-            "game_status": "in_progress",
+            "best_move": result["best_move"],
+            "evaluation": result["evaluation"],
+            "depth": result["depth"]
         }
 
-    @api.get("/")
-    def index():
-        return FileResponse(BASE_DIR / "static" / "index.html")
-
-    api.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
-    return api
-
-
-app = create_app()
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Engine-Fehler: {str(error)}"
+        )

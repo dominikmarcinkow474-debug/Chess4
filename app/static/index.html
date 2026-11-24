@@ -3,10 +3,10 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="theme-color" content="#101014">
 
-  <title>CART3R.JAILBREAK | CHESS BEST MOVE</title>
+  <title>Chess Best Move</title>
 
   <link rel="stylesheet" href="/static/style.css">
 
@@ -14,22 +14,19 @@
 </head>
 
 <body>
+
   <header>
-    <h1>CART3R.JAILBREAK</h1>
-    <p>CHESS BEST MOVE</p>
+    <h1>CHESS BEST MOVE</h1>
   </header>
 
   <main>
     <section class="game-panel">
 
-      <div class="panel-heading">
-        <h2>SPIELBRETT</h2>
-        <span class="live-status">ONLINE</span>
-      </div>
+      <h2>SPIELBRETT</h2>
 
       <div id="turn">WEISS AM ZUG</div>
 
-      <div id="board" aria-label="Interaktives Schachbrett"></div>
+      <div id="board"></div>
 
       <div class="board-controls">
         <button id="flip">BRETT DREHEN</button>
@@ -40,6 +37,7 @@
     </section>
 
     <section class="analysis-panel">
+
       <h2>STOCKFISH ANALYSE</h2>
 
       <button id="analyze" class="main-button">
@@ -50,20 +48,38 @@
         BESTEN ZUG SPIELEN
       </button>
 
-      <div id="result">
-        <strong>BEREIT</strong>
-        <p>Spiele einen Zug und starte anschließend die Analyse.</p>
-      </div>
+      <div id="result" hidden></div>
 
       <h3>ZUGVERLAUF</h3>
       <div id="history">Noch keine Züge.</div>
+
     </section>
   </main>
 
+  <!-- Werbeeinblendung -->
+  <div id="ad-overlay" class="ad-overlay" hidden>
+    <div class="ad-window">
+
+      <span class="ad-label">WERBUNG</span>
+
+      <h2>Anzeige</h2>
+
+      <p id="ad-message">
+        Hier kann deine Werbeanzeige erscheinen.
+      </p>
+
+      <button id="close-ad" class="main-button">
+        WEITER ZUM SPIEL
+      </button>
+
+    </div>
+  </div>
+
   <footer>
-    CART3R.JAILBREAK CHESS ENGINE
+    CHESS BEST MOVE
   </footer>
 
   <script src="/static/app.js"></script>
+
 </body>
 </html>

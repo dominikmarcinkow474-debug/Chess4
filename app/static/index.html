@@ -1,326 +1,71 @@
 
-* {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
-
-html {
-  background: #101014;
-}
-
-body {
-  margin: 0;
-  padding: 15px;
-  min-height: 100vh;
-  background: #101014;
-  color: #ffffff;
-  font-family: Arial, Helvetica, sans-serif;
-  text-align: center;
-}
-
-header {
-  padding: 20px 10px;
-  margin-bottom: 20px;
-  border-bottom: 2px solid #e00030;
-}
-
-header h1 {
-  margin: 0;
-  color: #ff1744;
-  font-size: clamp(23px, 5vw, 36px);
-  font-weight: 900;
-  letter-spacing: 2px;
-}
-
-main {
-  width: 100%;
-  max-width: 650px;
-  margin: 0 auto;
-}
-
-.game-panel,
-.analysis-panel {
-  width: 100%;
-  padding: 16px;
-  margin-bottom: 20px;
-  background: #1b1b22;
-  border: 1px solid #393943;
-  border-radius: 15px;
-}
-
-h2 {
-  color: #ff1744;
-  font-size: 18px;
-  margin: 10px 0 18px;
-}
-
-#turn {
-  margin: 12px 0;
-  padding: 12px;
-  background: #101014;
-  color: #ffcc66;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: bold;
-}
-
-/* DAS EIGENTLICHE SCHACHBRETT */
-
-#board {
-  display: grid !important;
-  grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
-  grid-template-rows: repeat(8, minmax(0, 1fr)) !important;
-
-  width: 100%;
-  max-width: 480px;
-  aspect-ratio: 1 / 1;
-
-  margin: 15px auto 20px;
-  padding: 0;
-
-  border: 4px solid #38383f;
-  border-radius: 5px;
-  overflow: hidden;
-
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-/* EINZELNE SCHACHFELDER */
-
-#board .square {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  min-height: 0;
-
-  position: relative;
-
-  font-size: clamp(25px, 9vw, 54px);
-  line-height: 1;
-
-  cursor: pointer;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-#board .light {
-  background: #eee3cf;
-}
-
-#board .dark {
-  background: #8a6047;
-}
-
-/* SCHACHFIGUREN */
-
-#board .white-piece {
-  color: #ffffff;
-  text-shadow:
-    -1px -1px 1px #222,
-    1px 1px 2px #222,
-    0 2px 3px #333;
-}
-
-#board .black-piece {
-  color: #171717;
-  text-shadow: 0 1px 1px #aaa;
-}
-
-/* MARKIERUNGEN */
-
-#board .selected {
-  background: #d6bd38 !important;
-}
-
-#board .legal::after {
-  content: "";
-  position: absolute;
-  width: 22%;
-  height: 22%;
-  border-radius: 50%;
-  background: rgba(20, 20, 20, 0.35);
-}
-
-#board .best-from {
-  box-shadow: inset 0 0 0 5px #ff1744;
-}
-
-#board .best-to {
-  box-shadow: inset 0 0 0 5px #ffe600;
-}
-
-#board .last-move {
-  background-image: linear-gradient(
-    rgba(255, 220, 0, 0.25),
-    rgba(255, 220, 0, 0.25)
-  );
-}
-
-/* SPIELSTEUERUNG */
-
-.board-controls {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 7px;
-}
-
-button {
-  border: none;
-  border-radius: 8px;
-  padding: 13px 15px;
-  margin: 4px;
-
-  color: white;
-  background: #454550;
-
-  font-size: 12px;
-  font-weight: bold;
-
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-button:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.main-button {
-  width: 100%;
-  padding: 17px;
-  background: #e00030;
-  font-size: 15px;
-}
-
-.play-button {
-  width: 100%;
-  padding: 15px;
-  background: #bd8e00;
-  font-size: 14px;
-}
-
-/* ANALYSE UND ZUGVERLAUF */
-
-#result,
-#history {
-  margin-top: 15px;
-  padding: 15px;
-
-  background: #101014;
-  color: #ffffff;
-
-  border: 1px solid #393943;
-  border-radius: 9px;
-
-  text-align: left;
-  overflow-wrap: anywhere;
-  line-height: 1.6;
-}
-
-#result[hidden] {
-  display: none !important;
-}
-
-#result strong {
-  color: #ff1744;
-}
-
-h3 {
-  margin-top: 22px;
-  color: #aaaaaa;
-  font-size: 13px;
-  text-align: left;
-}
-
-/* WERBEFENSTER */
-
-.ad-overlay[hidden] {
-  display: none !important;
-}
-
-.ad-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.88);
-}
-
-.ad-window {
-  width: 100%;
-  max-width: 400px;
-  padding: 25px;
-
-  background: #1b1b22;
-  border: 2px solid #e00030;
-  border-radius: 16px;
-
-  text-align: center;
-}
-
-.ad-label {
-  color: #ffcc66;
-  font-size: 11px;
-  letter-spacing: 3px;
-}
-
-.ad-window h2 {
-  color: #ff1744;
-}
-
-.ad-window p {
-  color: #ddd;
-  line-height: 1.6;
-  margin: 20px 0;
-}
-
-#close-ad {
-  width: 100%;
-}
-
-/* FUSSZEILE */
-
-footer {
-  padding: 20px;
-  color: #666;
-  font-size: 10px;
-  letter-spacing: 3px;
-}
-
-/* IPAD UND HANDY */
-
-@media (max-width: 600px) {
-  body {
-    padding: 8px;
-  }
-
-  .game-panel,
-  .analysis-panel {
-    padding: 12px;
-  }
-
-  #board .square {
-    font-size: clamp(25px, 9vw, 42px);
-  }
-
-  button {
-    padding: 12px;
-  }
-}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#101014">
+
+  <title>Chess Best Move</title>
+
+  <link rel="stylesheet" href="/static/style.css?v=3">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+</head>
+
+<body>
+
+  <header>
+    <h1>CHESS BEST MOVE</h1>
+  </header>
+
+  <main>
+    <section class="game-panel">
+      <h2>SPIELBRETT</h2>
+
+      <div id="turn">WEISS AM ZUG</div>
+
+      <div id="board"></div>
+
+      <div class="board-controls">
+        <button id="flip">BRETT DREHEN</button>
+        <button id="undo">ZUG ZURÜCK</button>
+        <button id="reset">NEUES SPIEL</button>
+      </div>
+    </section>
+
+    <section class="analysis-panel">
+      <h2>STOCKFISH ANALYSE</h2>
+
+      <button id="analyze" class="main-button">
+        BESTEN ZUG FINDEN
+      </button>
+
+      <button id="play-best" class="play-button" disabled>
+        BESTEN ZUG SPIELEN
+      </button>
+
+      <div id="result" hidden></div>
+
+      <h3>ZUGVERLAUF</h3>
+      <div id="history">Noch keine Züge.</div>
+    </section>
+  </main>
+
+  <div id="ad-overlay" class="ad-overlay" hidden>
+    <div class="ad-window">
+      <span class="ad-label">WERBUNG</span>
+      <h2>Anzeige</h2>
+      <p>Hier kann deine Werbeanzeige erscheinen.</p>
+      <button id="close-ad" class="main-button">
+        WEITER ZUM SPIEL
+      </button>
+    </div>
+  </div>
+
+  <footer>CHESS BEST MOVE</footer>
+
+  <script src="/static/app.js?v=3"></script>
+
+</body>
+</html>

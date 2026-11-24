@@ -1,6 +1,7 @@
 
 import os
 import shutil
+import threading
 
 import chess
 import chess.engine
@@ -11,6 +12,7 @@ class StockfishEngine:
     def __init__(self):
         self.engine = None
         self.ready = False
+        self.lock = threading.Lock()
 
         self.depth = int(os.getenv("ENGINE_DEPTH", "16"))
         self.threads = int(os.getenv("ENGINE_THREADS", "1"))
@@ -36,18 +38,18 @@ class StockfishEngine:
         if not self.ready or self.engine is None:
             raise RuntimeError("Stockfish ist nicht gestartet.")
 
-        info = self.engine.analyse(
-            board,
-            chess.engine.Limit(depth=self.depth)
-        )
+        with self.lock:
+            info = self.engine.analyse(
+                board,
+                chess.engine.Limit(depth=self.depth)
+            )
 
-        best_move = self.engine.play(
-            board,
-            chess.engine.Limit(depth=self.depth)
-        ).move
+        pv = info.get("pv", [])
 
-        if best_move is None:
+        if not pv:
             raise RuntimeError("Stockfish hat keinen Zug gefunden.")
+
+        best_move = pv[0]
 
         score = info["score"].pov(board.turn).score(
             mate_score=100000
